@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>postcss-pxtorem + rem 自适应 · 交互 Demo</title>
+<style>
+  :root{
+    --bg:#080b10; --bg2:#0b1017; --panel:#101721; --panel2:#0b1118;
+    --line:#1d2836; --line2:#27364a;
+    --text:#e8eef6; --dim:#93a1b3; --dim2:#6b7c91;
+    --mint:#37e0a0; --blue:#5aa9ff; --amber:#ffbe55; --red:#ff6f6f; --violet:#a78bfa;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(900px 420px at 12% -8%, rgba(55,224,160,.10), transparent 62%),
+      radial-gradient(760px 380px at 88% -4%, rgba(90,169,255,.11), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(14px,3vw,28px)}
+  code,kbd{font-family:var(--mono);font-size:.92em}
+  .hl{color:var(--mint)}
+  .muted{color:var(--dim)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(28px,5vw,52px) 0 18px}
+  .hero .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mint);border:1px solid rgba(55,224,160,.32);
+    background:rgba(55,224,160,.07);padding:4px 10px;border-radius:999px;
+  }
+  .hero h1{margin:14px 0 10px;font-size:clamp(23px,3.5vw,38px);line-height:1.22;letter-spacing:-.01em}
+  .hero p{margin:0;color:var(--dim);max-width:76ch;font-size:clamp(13.5px,1.5vw,15.5px)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{
+    display:flex;align-items:baseline;gap:7px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:7px 11px;font-size:12px;color:var(--dim);
+  }
+  .chip b{font-family:var(--mono);color:var(--text);font-size:13px;font-weight:600}
+  .chip .u{color:var(--dim2);font-size:11px}
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    position:sticky;top:0;z-index:30;margin-top:22px;
+    background:rgba(8,11,16,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  }
+  .tabs-in{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+  .tabs-in::-webkit-scrollbar{display:none}
+  .tab{
+    appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+    color:var(--dim);font:inherit;font-size:13.5px;padding:13px 15px;cursor:pointer;white-space:nowrap;
+    transition:color .16s,border-color .16s;
+  }
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--mint);border-bottom-color:var(--mint)}
+  .tab .idx{font-family:var(--mono);font-size:11px;color:var(--dim2);margin-right:6px}
+  .tab.on .idx{color:rgba(55,224,160,.65)}
+
+  .pane{display:none;padding:26px 0 90px;animation:fade .22s ease}
+  .pane.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ---------- generic ---------- */
+  .card{
+    background:linear-gradient(180deg,#101721,#0c121a);
+    border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;
+  }
+  .card h3{margin:0 0 4px;font-size:15px;letter-spacing:.01em}
+  .card p{margin:6px 0 0;color:var(--dim);font-size:13.5px}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:14px}
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+  .stack{display:flex;flex-direction:column;gap:14px}
+  .sec-title{display:flex;align-items:center;gap:10px;margin:30px 0 12px;font-size:14px;letter-spacing:.04em;color:var(--dim)}
+  .sec-title::before{content:"";width:14px;height:2px;background:var(--mint);border-radius:2px}
+  .sec-title:first-child{margin-top:0}
+  .tag{
+    display:inline-block;font-size:10.5px;letter-spacing:.06em;padding:2px 7px;border-radius:999px;
+    border:1px solid var(--line2);color:var(--dim);vertical-align:middle;
+  }
+  .tag.a{color:var(--mint);border-color:rgba(55,224,160,.35);background:rgba(55,224,160,.08)}
+  .tag.b{color:var(--blue);border-color:rgba(90,169,255,.35);background:rgba(90,169,255,.08)}
+  .tag.w{color:var(--amber);border-color:rgba(255,190,85,.35);background:rgba(255,190,85,.08)}
+  .tag.r{color:var(--red);border-color:rgba(255,111,111,.35);background:rgba(255,111,111,.08)}
+
+  pre.code{
+    margin:12px 0 0;background:#06090d;border:1px solid var(--line);border-radius:10px;
+    padding:13px 14px;overflow:auto;font-family:var(--mono);font-size:12.4px;line-height:1.7;
+    color:#cfe3ff;tab-size:2;white-space:pre;
+  }
+  pre.code.sm{font-size:11.6px;line-height:1.62}
+  pre.code::-webkit-scrollbar{height:8px;width:8px}
+  pre.code::-webkit-scrollbar-thumb{background:#22303f;border-radius:8px}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+  .kv dt{color:var(--dim2)}
+  .kv dd{margin:0;font-family:var(--mono);color:var(--text)}
+
+  /* ---------- inputs ---------- */
+  label.f{display:block;font-size:11.5px;letter-spacing:.06em;color:var(--dim2);margin-bottom:6px;text-transform:uppercase}
+  .inp,select.inp{
+    width:100%;background:#06090d;border:1px solid var(--line);border-radius:9px;
+    padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .inp:focus{border-color:rgba(55,224,160,.6);box-shadow:0 0 0 3px rgba(55,224,160,.11)}
+  select.inp{
+    appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:30px;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7c91'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 11px center;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:620px){.row2,.row3{grid-template-columns:1fr}}
+
+  .btn{
+    appearance:none;border:1px solid var(--line2);background:#131c27;color:var(--text);
+    font:inherit;font-size:12.5px;padding:8px 14px;border-radius:9px;cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s;
+  }
+  .btn:hover{background:#1a2634;border-color:#33465e}
+  .btn.pri{background:rgba(55,224,160,.13);border-color:rgba(55,224,160,.4);color:var(--mint)}
+  .btn.pri:hover{background:rgba(55,224,160,.2)}
+  .btn.sm{padding:5px 10px;font-size:11.5px}
+  .btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+  .seg{display:inline-flex;background:#06090d;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+  .seg button{
+    appearance:none;border:0;background:none;color:var(--dim);font:inherit;font-size:12.5px;
+    padding:6px 12px;border-radius:8px;cursor:pointer;transition:all .15s;
+  }
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:rgba(55,224,160,.14);color:var(--mint)}
+
+  /* ---------- ruler ---------- */
+  .ruler-track{
+    position:relative;height:34px;border-radius:8px;overflow:hidden;margin-top:6px;
+    background:repeating-linear-gradient(90deg,#141c26 0 9px,#0e1620 9px 10px);
+    border:1px solid var(--line);
+  }
+  .ruler-bar{
+    position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(55,224,160,.75),rgba(90,169,255,.55));
+    transition:width .18s ease;box-shadow:0 0 20px rgba(55,224,160,.3) inset;
+  }
+  .ruler-bar.b2{background:linear-gradient(90deg,rgba(255,111,111,.55),rgba(255,190,85,.35));box-shadow:none}
+  .ruler-num{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11.5px;color:var(--dim);text-shadow:0 0 6px rgba(8,11,16,.9)}
+  .ruler-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--dim)}
+
+  /* ---------- formula ---------- */
+  .formula{display:grid;gap:8px;font-family:var(--mono);font-size:12.6px}
+  .formula .ln{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;padding:8px 11px;background:#06090d;border:1px solid var(--line);border-radius:9px}
+  .formula .ln.ok{border-color:rgba(55,224,160,.35);background:rgba(55,224,160,.05)}
+  .formula .op{color:var(--dim2)}
+  .formula .v{color:var(--amber)}
+  .formula .r{color:var(--mint)}
+
+  /* ---------- tables ---------- */
+  .tbl{width:100%;border-collapse:collapse;font-size:12.8px;margin-top:10px}
+  .tbl th{
+    text-align:left;font-weight:500;color:var(--dim2);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  .tbl td{padding:8px 10px;border-bottom:1px solid rgba(29,40,54,.55);font-family:var(--mono);color:var(--text)}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl td.dim{color:var(--dim2)}
+  .tbl td.bad{color:var(--red)}
+  .tbl td.good{color:var(--mint)}
+  .tbl-scroll{overflow-x:auto}
+
+  /* ---------- callouts ---------- */
+  .note{
+    display:flex;gap:10px;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.6;
+    border:1px solid rgba(90,169,255,.3);background:rgba(90,169,255,.07);color:#c8dcf5;margin-top:12px;
+  }
+  .note.warn{border-color:rgba(255,190,85,.34);background:rgba(255,190,85,.07);color:#f3dcb4}
+  .note.bad{border-color:rgba(255,111,111,.36);background:rgba(255,111,111,.08);color:#ffd3d3}
+  .note.good{border-color:rgba(55,224,160,.32);background:rgba(55,224,160,.07);color:#c3f5e0}
+  .note .ic{flex:0 0 auto;font-family:var(--mono);font-weight:700}
+  .note code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+
+  /* ---------- output boxes ---------- */
+  .out{
+    background:#06090d;border:1px solid var(--line);border-radius:12px;padding:0;overflow:hidden;
+  }
+  .out-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 12px;border-bottom:1px solid var(--line);background:#0a1017;
+    font-size:11.5px;letter-spacing:.06em;color:var(--dim2);text-transform:uppercase;
+  }
+  .out-body{padding:12px 13px;font-family:var(--mono);font-size:12.4px;line-height:1.7;color:#cfe3ff;overflow:auto;white-space:pre;max-height:520px}
+  .out-body.left{white-space:normal}
+  .big-res{
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:var(--mono);
+    font-size:clamp(18px,3vw,26px);letter-spacing:-.01em;
+  }
+  .big-res .arrow{color:var(--dim2);font-size:.7em}
+  .big-res .from{color:var(--text)}
+  .big-res .to{color:var(--mint)}
+  .big-res .unit{font-size:.55em;color:var(--dim2);letter-spacing:0}
+
+  /* ---------- frames ---------- */
+  .frames{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:760px){.frames{grid-template-columns:1fr}}
+  .frame-card{border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden}
+  .frame-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:12px}
+  .frame-head .nm{display:flex;align-items:center;gap:7px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)}
+  .dot.r{background:var(--red);box-shadow:0 0 8px var(--red)}
+  .zoom{font-family:var(--mono);font-size:11px;color:var(--dim2);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+  .frame-wrap{position:relative;overflow:hidden;background:#fff;transition:height .2s}
+  .frame-wrap iframe{border:0;display:block;transform-origin:top left;background:#f5f7fa}
+
+  /* ---------- pitfalls ---------- */
+  .pit{border:1px solid var(--line);border-radius:12px;padding:15px 16px;background:linear-gradient(180deg,#101721,#0c121a)}
+  .pit h4{margin:0 0 6px;font-size:13.5px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .pit p{margin:0;font-size:13px;color:var(--dim)}
+  .pit .fix{margin-top:9px;font-size:12.5px;color:#b8f0dc;background:rgba(55,224,160,.06);border-left:2px solid var(--mint);padding:7px 10px;border-radius:0 7px 7px 0;font-family:var(--mono);line-height:1.6;word-break:break-word}
+
+  .foot{margin-top:34px;padding:20px 0 60px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+  ul.clean{margin:8px 0 0;padding-left:18px;color:var(--dim);font-size:13.3px}
+  ul.clean li{margin:3px 0}
+  ul.clean b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="eyebrow">postcss-pxtorem · rem 自适应</span>
+    <h1>px → rem 自适应，一个能动手的 Demo</h1>
+    <p>
+      按 <a href="https://juejin.cn/post/7431800714631528486" target="_blank" rel="noopener">《postcss-pxtorem 在 Vite5+Vue3 项目中如何配置》</a>
+      与 <a href="https://juejin.cn/post/7561355691681267753" target="_blank" rel="noopener">《PostCSS Pxtorem 响应式设计及移动端适配》</a>
+      两篇文章整理。核心只有一句话：<b class="hl">编译期用 rootValue 把 px 换成 rem，运行期让 html 的 font-size 跟着屏幕走，两边基准必须都是设计稿的 1/10。</b>
+    </p>
+    <div class="chips" id="chips">
+      <div class="chip">可视宽<b id="stat-w">—</b></div>
+      <div class="chip">本页根字号<b id="stat-rem">—</b></div>
+      <div class="chip">DPR<b id="stat-dpr">—</b></div>
+      <div class="chip">1rem 若按 屏宽÷10<b id="stat-rem10">—</b></div>
+    </div>
+  </header>
+</div>
+
+<nav class="tabs">
+  <div class="wrap tabs-in" role="tablist">
+    <button class="tab on" data-tab="pane-why" role="tab"><span class="idx">01</span>原理</button>
+    <button class="tab" data-tab="pane-calc" role="tab"><span class="idx">02</span>换算器</button>
+    <button class="tab" data-tab="pane-cfg" role="tab"><span class="idx">03</span>配置生成</button>
+    <button class="tab" data-tab="pane-live" role="tab"><span class="idx">04</span>实机演示</button>
+    <button class="tab" data-tab="pane-pit" role="tab"><span class="idx">05</span>踩坑 &amp; 对比</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ 01 原理 ============ -->
+  <section class="pane on" id="pane-why">
+    <div class="sec-title">三个角色的分工</div>
+    <div class="grid-3">
+      <div class="card">
+        <h3><span class="tag">运行时</span> rem</h3>
+        <p><b>1rem 对应的 px = html 的 font-size。</b>html 字号一改，页面上所有 rem 尺寸等比跟着变，这就是整套方案能自适应的根。</p>
+        <pre class="code sm">html { font-size: 37.5px }
+/* 此时 1rem = 37.5px */
+.card { height: 1rem }   /* → 37.5px   */
+.card { height: 2rem }   /* → 75px     */</pre>
+      </div>
+      <div class="card">
+        <h3><span class="tag a">编译期</span> postcss-pxtorem</h3>
+        <p>构建时读 <code>rootValue</code>，把样式里的 <code>px</code> 除以它换成 <code>rem</code>。只在编译期跑，浏览器里没有它。</p>
+        <pre class="code sm">/* 源码 */  width: 100px;
+/* rootValue: 75 */
+/* 产物 */  width: 1.3333rem;</pre>
+        <p class="muted" style="font-size:12.5px">注意：<b style="color:var(--amber)">行内样式 <code>style="width:100px"</code> 不会被转换</b>，大写 <code>PX</code> 也会被跳过。</p>
+      </div>
+      <div class="card">
+        <h3><span class="tag b">运行时</span> amfe-flexible</h3>
+        <p>页面加载与 resize 时，把 html 的 font-size 设成 <b>可视宽 ÷ 10</b>。于是 rootValue 必须取设计稿宽 ÷ 10，两边才咬得上。</p>
+        <pre class="code sm">// 插件内部近似逻辑
+docEl.style.fontSize =
+  docEl.clientWidth / 10 + 'px'</pre>
+        <p class="muted" style="font-size:12.5px">第二篇的手写 <code>setRem()</code> 就是在做同一件事，只是多加了 clamp 上限。</p>
+      </div>
+    </div>
+
+    <div class="sec-title">一条完整的换算链（这是全文最重要的一屏）</div>
+    <div class="card">
+      <div class="formula">
+        <div class="ln"><span class="op">① 设计稿</span><span>750px 全屏宽</span><span class="op">→</span><span class="v">rootValue = 750 ÷ 10 = 75</span></div>
+        <div class="ln"><span class="op">② 编译期</span><span>设计稿上 100px 的方块</span><span class="op">→</span><span class="r">100 ÷ 75 = 1.3333rem</span></div>
+        <div class="ln ok"><span class="op">③ 运行时 @750 屏</span><span>html font-size = 750 ÷ 10 = 75px</span><span class="op">→</span><span class="r">1.3333 × 75 = 100px</span><span class="op">✓ 与设计稿 1:1</span></div>
+        <div class="ln ok"><span class="op">④ 运行时 @375 屏</span><span>html font-size = 375 ÷ 10 = 37.5px</span><span class="op">→</span><span class="r">1.3333 × 37.5 = 50px</span><span class="op">✓ 等比缩一半</span></div>
+      </div>
+      <div class="note">
+        <span class="ic">≡</span>
+        <span>一般形式：<code>实际渲染px = 设计稿px × (屏宽 ÷ 设计稿宽)</code>。这也解释了为什么 <code>rootValue</code> 只能等于设计稿宽的 1/10 —— 它和 flexible 的“÷10”必须是同一个约定。</span>
+      </div>
+    </div>
+
+    <div class="sec-title">此刻，1rem 到底有多宽？</div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>方案 A：flexible（屏宽 ÷ 10）</h3>
+        <div class="ruler-track"><div class="ruler-bar" id="rulerBar"></div><span class="ruler-num" id="rulerNum">—</span></div>
+        <div class="ruler-meta"><span>1rem = 可视宽 ÷ 10</span><span id="rulerVal" class="hl" style="font-family:var(--mono)">—</span></div>
+        <p style="font-size:12.8px">宽度越大，1rem 越大，所有元素等比放大。<b>天然无上限</b> —— 桌面大屏会放大到离谱，这就是移动端方案不能直接搬到 PC 的原因。</p>
+      </div>
+      <div class="card">
+        <h3>方案 B：固定 rootValue: 16</h3>
+        <div class="ruler-track"><div class="ruler-bar b2" id="rulerBar2"></div><span class="ruler-num" id="rulerNum2">16px</span></div>
+        <div class="ruler-meta"><span>1rem = 16px（永不变化）</span><span style="font-family:var(--mono);color:var(--red)">不响应屏宽</span></div>
+        <p style="font-size:12.8px">第二篇的示例配置里出现过 <code>rootValue: 16</code>。它只在“设计稿 160px”或纯文档排版的语境下成立；配 750/1920 设计稿会整体偏差一个量级。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 换算器 ============ -->
+  <section class="pane" id="pane-calc">
+    <div class="sec-title">在线换算</div>
+    <div class="grid-2">
+      <div class="card stack">
+        <div class="row2">
+          <div>
+            <label class="f" for="c-design">设计稿宽度</label>
+            <select class="inp" id="c-design">
+              <option value="375">375（iPhone / vant）</option>
+              <option value="750" selected>750（常见 H5）</option>
+              <option value="1920">1920（PC 大屏）</option>
+              <option value="1440">1440（中后台）</option>
+            </select>
+          </div>
+          <div>
+            <label class="f" for="c-px">设计稿上的 px</label>
+            <input class="inp" id="c-px" type="number" value="100" min="0" step="1">
+          </div>
+        </div>
+        <div>
+          <label class="f" for="c-mode">rootValue 取法</label>
+          <select class="inp" id="c-mode">
+            <option value="auto" selected>自动 = 设计稿 ÷ 10（配 flexible / setRem）</option>
+            <option value="fixed16">固定 16（第二篇示例里的写法）</option>
+            <option value="manual">手动输入</option>
+          </select>
+        </div>
+        <div id="c-manual-wrap" style="display:none">
+          <label class="f" for="c-manual">手动 rootValue</label>
+          <input class="inp" id="c-manual" type="number" value="75" min="1" step="1">
+        </div>
+        <div class="btn-row">
+          <button class="btn sm pri" data-ex="border" id="ex-border">排除 border*</button>
+          <button class="btn sm pri" data-ex="font" id="ex-font">排除 font-size*</button>
+          <button class="btn sm" data-ex="media" id="ex-media">转换媒体查询内 px</button>
+        </div>
+        <div class="out" style="margin-top:2px">
+          <div class="out-head"><span>换算结果</span><span id="c-rv-label" class="muted">—</span></div>
+          <div class="out-body left" style="padding:16px 14px">
+            <div class="big-res">
+              <span class="from" id="c-from">100px</span>
+              <span class="arrow">→</span>
+              <span class="to" id="c-to">1.3333</span><span class="unit">rem</span>
+            </div>
+            <div style="margin-top:14px;display:grid;gap:6px;font-family:var(--mono);font-size:12.4px;color:var(--dim)">
+              <div>屏宽 <span id="c-sw" style="color:var(--text)">—</span> 时，1rem = <span id="c-rempx" style="color:var(--amber)">—</span></div>
+              <div>该元素实际渲染 = <span id="c-real" style="color:var(--mint)">—</span> <span id="c-scaletip" style="color:var(--dim2)"></span></div>
+            </div>
+          </div>
+        </div>
+        <div id="c-warn"></div>
+      </div>
+
+      <div class="card">
+        <h3>常用值对照表 <span class="muted" style="font-weight:400;font-size:12px">（随上方配置实时变化）</span></h3>
+        <div class="tbl-scroll">
+          <table class="tbl">
+            <thead><tr><th>设计稿 px</th><th>编译后 rem</th><th>@当前屏 实渲染</th></tr></thead>
+            <tbody id="c-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-title">CSS 编译模拟：看看插件到底改了哪几行</div>
+    <div class="grid-2">
+      <div class="out">
+        <div class="out-head"><span>源码 css</span><span class="muted">可编辑</span></div>
+        <textarea id="css-in" spellcheck="false" style="width:100%;min-height:300px;background:#06090d;border:0;color:#cfe3ff;font-family:var(--mono);font-size:12.4px;line-height:1.7;padding:12px 13px;outline:none;resize:vertical">/* 设计稿 750px */
+.page {
+  width: 750px;
+  padding: 24px 32px;
+  font-size: 28px;
+  background: #f5f7fa;
+}
+
+.card {
+  margin: 16px auto;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+.ignore-px {
+  width: 200PX;
+  height: 40px;
+}
+
+@media (min-width: 768px) {
+  .page {
+    width: 1000px;
+  }
+}</textarea>
+      </div>
+      <div class="out">
+        <div class="out-head"><span>编译产物 css</span><button class="btn sm" id="copy-css">复制</button></div>
+        <pre id="css-out" class="out-body" style="margin:0;border:0;border-radius:0;background:#06090d;max-height:340px"></pre>
+      </div>
+    </div>
+    <div class="note warn">
+      <span class="ic">!</span>
+      <span>这一段是页面内用 JS <b>模拟</b> postcss-pxtorem 的行为（逐条声明匹配、`propList` 排除、大写 PX 跳过、`minPixelValue` 下限、`mediaQuery` 开关）。真实项目里由构建时的 PostCSS 完成，产物与这里规则一致，但本模拟不处理嵌套、`@supports`、`calc()` 内混合单位等边缘语法。</span>
+    </div>
+  </section>
+
+  <!-- ============ 03 配置生成 ============ -->
+  <section class="pane" id="pane-cfg">
+    <div class="sec-title">按你的项目生成配置</div>
+    <div class="grid-2">
+      <div class="card stack">
+        <div class="row2">
+          <div>
+            <label class="f" for="cfg-fw">构建环境</label>
+            <select class="inp" id="cfg-fw">
+              <option value="vite-vue" selected>Vue3 + Vite</option>
+              <option value="vite-react">React + Vite</option>
+              <option value="next">Next.js / 纯 PostCSS 配置</option>
+            </select>
+          </div>
+          <div>
+            <label class="f" for="cfg-dw">设计稿宽度</label>
+            <select class="inp" id="cfg-dw">
+              <option value="375">375</option>
+              <option value="750" selected>750</option>
+              <option value="1920">1920</option>
+              <option value="1440">1440</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="f" for="cfg-lib">项目里的第三方组件库</label>
+          <select class="inp" id="cfg-lib">
+            <option value="none" selected>无</option>
+            <option value="vant">vant（375 设计稿）</option>
+            <option value="element">element-plus</option>
+            <option value="antd">antd</option>
+          </select>
+        </div>
+        <div>
+          <label class="f">转换范围</label>
+          <div class="btn-row">
+            <label class="btn sm" style="display:flex;gap:7px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfg-exb" checked> 排除 border*
+            </label>
+            <label class="btn sm" style="display:flex;gap:7px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfg-exf" checked> 排除 font-size*
+            </label>
+            <label class="btn sm" style="display:flex;gap:7px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfg-minpv" checked> minPixelValue 1
+            </label>
+          </div>
+        </div>
+        <div class="note good">
+          <span class="ic">✓</span>
+          <span>生成器会同步校验：<b>rootValue 是否等于设计稿 ÷ 10</b>。不相等就红字提示偏差倍数——这正好是第二篇示例里 <code>rootValue: 16</code> 配 <code>width/75</code> 的问题所在。</span>
+        </div>
+        <div id="cfg-check"></div>
+      </div>
+
+      <div class="out">
+        <div class="out-head"><span id="cfg-file-name">vite.config.ts</span><button class="btn sm" id="copy-cfg">复制</button></div>
+        <pre id="cfg-out" class="out-body" style="margin:0;border:0;border-radius:0;background:#06090d;max-height:430px"></pre>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:14px">
+      <div class="out">
+        <div class="out-head"><span>运行时基准</span><button class="btn sm" id="copy-rt">复制</button></div>
+        <pre id="cfg-rt" class="out-body" style="margin:0;border:0;border-radius:0;background:#06090d;max-height:300px"></pre>
+      </div>
+      <div class="card">
+        <h3>为什么两边必须对齐</h3>
+        <p>插件负责“分子”，运行时负责“分母”。一边改了另一边没改，全站尺寸就会按固定倍数跑偏，而且每种元素偏得一样多，很难第一眼看出来。</p>
+        <div class="tbl-scroll" style="margin-top:6px">
+          <table class="tbl">
+            <thead><tr><th>rootValue</th><th>运行时 font-size</th><th>1.3333rem 实渲染</th><th>结果</th></tr></thead>
+            <tbody>
+              <tr><td>75</td><td>屏宽 ÷ 10</td><td class="good">100px @750</td><td class="good">✓ 对齐</td></tr>
+              <tr><td>16</td><td>屏宽 ÷ 10</td><td class="bad">468px @750</td><td class="bad">✗ 偏 4.7 倍</td></tr>
+              <tr><td>75</td><td>固定 16px</td><td class="bad">21.3px @750</td><td class="bad">✗ 偏 0.21 倍</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin-top:10px">口诀：<b class="hl">rootValue = 设计稿 ÷ 10 = flexible 在满宽下的根字号</b>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 实机演示 ============ -->
+  <section class="pane" id="pane-live">
+    <div class="sec-title">同一套 UI，rem 适配 vs 原样 px</div>
+    <div class="card">
+      <div class="btn-row" style="justify-content:space-between">
+        <div class="seg" id="devices">
+          <button data-w="320">320</button>
+          <button data-w="375" class="on">375 设计稿</button>
+          <button data-w="414">414</button>
+          <button data-w="750">750</button>
+        </div>
+        <div class="muted" style="font-size:12.5px">两个 iframe 用同一份 HTML，唯一差别是单位与根字号逻辑</div>
+      </div>
+    </div>
+
+    <div class="frames" style="margin-top:14px">
+      <div class="frame-card">
+        <div class="frame-head">
+          <span class="nm"><span class="dot"></span>已适配 · px 编译成 rem + flexible</span>
+          <span class="zoom" data-zoom>100%</span>
+        </div>
+        <div class="frame-wrap" data-simh="600"><iframe id="frame-adapt" title="rem 适配版"></iframe></div>
+        <div class="frame-head" style="border-top:1px solid var(--line);border-bottom:0;font-size:11.5px;color:var(--dim2)">
+          根字号 = 屏宽 ÷ 10，卡片跟着等比放大 / 缩小
+        </div>
+      </div>
+      <div class="frame-card">
+        <div class="frame-head">
+          <span class="nm"><span class="dot r"></span>未适配 · 全部写死 px</span>
+          <span class="zoom" data-zoom>100%</span>
+        </div>
+        <div class="frame-wrap" data-simh="600"><iframe id="frame-plain" title="px 固定版"></iframe></div>
+        <div class="frame-head" style="border-top:1px solid var(--line);border-bottom:0;font-size:11.5px;color:var(--dim2)">
+          html 仍是 16px，换屏宽后尺寸纹丝不动，只剩空白
+        </div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:14px">
+      <span class="ic">i</span>
+      <span>每个 iframe 底部有一行实时读数（根字号 / 卡片实测宽度 / 屏宽），下拉到 320 与 750 各看一次，差距一目了然。注意适配版里的 <b>1px 描边也被换成了 rem</b>，在 750 下会变成 2px —— 这就是“边框不该参与转换”的现场演示。</span>
+    </div>
+
+    <div class="sec-title">PC 大屏（1920 稿）为什么不建议照搬</div>
+    <div class="card">
+      <p style="margin-top:0">移动端可以无脑 <code>屏宽÷10</code>，因为手机屏宽区间窄。PC 从 1280 到 2560 差 2 倍，不加钳制的话 1rem 能从 128 涨到 256。第二篇给的 <code>Math.min(scale, 2)</code> 就是钳制，但只钳上限仍然会在小屏挤爆。</p>
+      <div class="tbl-scroll" style="margin-top:12px">
+        <table class="tbl">
+          <thead><tr><th>屏宽</th><th>scale = 屏宽÷1920</th><th>1rem（base 192，clamp .667~1.5）</th><th>设计稿 200px 元素实渲染</th><th>若误用 rootValue:16</th></tr></thead>
+          <tbody id="pc-tbody"></tbody>
+        </table>
+      </div>
+      <div class="note warn" style="margin-top:14px">
+        <span class="ic">!</span>
+        <span>PC 端更稳的做法：<b>布局尺寸用 px / clamp() / grid，字号用 clamp()</b>，只把确实需要随屏缩放的模块用 rem。全量 rem 化在 PC 上收益低、心智负担高。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 踩坑 ============ -->
+  <section class="pane" id="pane-pit">
+    <div class="sec-title">两篇原文的对照</div>
+    <div class="tbl-scroll card" style="padding:6px 10px">
+      <table class="tbl">
+        <thead><tr><th>维度</th><th>第一篇（Vite5 + Vue3）</th><th>第二篇（Vue3 / React 通用）</th></tr></thead>
+        <tbody>
+          <tr><td class="dim">定位</td><td>单框架实操笔记，跑起来就能用</td><td>概念 + 多框架配置合集</td></tr>
+          <tr><td class="dim">运行时</td><td>直接上 <code>amfe-flexible</code></td><td>手写 <code>setRem()</code> / <code>useRem()</code></td></tr>
+          <tr><td class="dim">rootValue</td><td class="good">严格 = 设计稿 ÷ 10（750→75、1920→192）</td><td class="bad">示例给 16，另给 1920/750 两套动态算法，混用会跑偏</td></tr>
+          <tr><td class="dim">第三方库</td><td class="good">vant 用 <code>rootValue({file})</code> 按文件切换 37.5 / 75</td><td>用 <code>exclude</code> 正则，颗粒度粗</td></tr>
+          <tr><td class="dim">参数讲解</td><td>只讲 rootValue / propList</td><td class="good">参数表最全（unitPrecision、selectorBlackList、minPixelValue…）</td></tr>
+          <tr><td class="dim">代码可用性</td><td class="good">可直接抄</td><td class="bad">有 <code>require()</code>、<code>.propList</code> 等笔误，需修正</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec-title">8 个真实会踩的坑</div>
+    <div class="grid-2">
+      <div class="pit">
+        <h4><span class="tag r">致命</span> rootValue 与运行时基准不一致</h4>
+        <p>第二篇示例同时出现 <code>rootValue: 16</code> 和 <code>html.fontSize = width / 75</code>，两边差 4.7 倍，全站元素集体放大。</p>
+        <div class="fix">rootValue 必须 = 设计稿宽 ÷ 10，与 flexible 的 ÷10 同一个约定。</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag r">致命</span> Vite 配置里写 <code>require()</code></h4>
+        <p><code>vite.config.js</code> 默认按 ESM 解析，<code>require is not defined</code>。</p>
+        <div class="fix">import postCssPxToRem from 'postcss-pxtorem'</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag w">高频</span> 1px 边框被转成 rem</h4>
+        <p>设计稿上的 1px 描边在大屏被放大成 2~3px，小屏又变成小数像素发虚。</p>
+        <div class="fix">propList: ['*', '!border*', '!font-size*']</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag w">高频</span> 第三方组件库尺寸对不上</h4>
+        <p>vant 设计稿 375、项目 750，共用一个 rootValue 必有一方错位。</p>
+        <div class="fix">rootValue ({ file }) { return /vant/.test(file) ? 37.5 : 75 }</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag">易漏</span> 行内样式 / JS 算出来的 px</h4>
+        <p><code>el.style.width = '100px'</code>、canvas、图表库的 <code>fontSize</code> 都不经过 PostCSS。</p>
+        <div class="fix">改成 100/rootValue + 'rem'，或统一走 CSS 变量</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag">易漏</span> <code>exclude: /node_modules/</code> 一刀切</h4>
+        <p>把组件库整体排除后，组件内部该适配的尺寸也没了，页面出现“半适配”的割裂感。</p>
+        <div class="fix">exclude: /node_modules[\/](?!element-plus)/</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag">注意</span> 媒体查询里的 px 原样保留</h4>
+        <p>默认 <code>mediaQuery: false</code>，断点仍是 px，而内部尺寸是 rem，两套单位混用容易算错。</p>
+        <div class="fix">断点统一用 px 就不要再在断点里写 rem 换算逻辑</div>
+      </div>
+      <div class="pit">
+        <h4><span class="tag r">架构</span> 超宽屏不设上限</h4>
+        <p>flexible 只做“屏宽 ÷ 10”，1440 屏上 1rem = 144px，PC 端会变成巨型页面。</p>
+        <div class="fix">scale = clamp(屏宽/设计稿, .667, 1.5) 后再乘 base</div>
+      </div>
+    </div>
+
+    <div class="sec-title">上手清单</div>
+    <div class="card">
+      <ul class="clean">
+        <li><b>先定设计稿宽度</b>，写进团队规范；改动设计稿等于改动 rootValue，全站一起动。</li>
+        <li><b>装依赖</b>：<code>pnpm add postcss-pxtorem amfe-flexible -D</code>（flexible 是运行时依赖，严格说不该 <code>-D</code>，但要随包上线）。</li>
+        <li><b>配插件</b>：<code>rootValue = 设计稿 ÷ 10</code>，<code>propList</code> 排除 <code>border*</code>、<code>font-size*</code>。</li>
+        <li><b>接运行时</b>：移动端引 <code>amfe-flexible</code>；PC 写带 clamp 的 <code>setRem()</code> 并监听 resize。</li>
+        <li><b>验收</b>：375 / 750 两个宽度各截一张图，元素位置比例应完全一致；再在大屏确认 1px 线没有变粗。</li>
+        <li><b>兜底</b>：容器最大宽度、栅格断点继续用 px；行内样式里的 px 手工处理。</li>
+      </ul>
+    </div>
+
+    <div class="foot">
+      <span>Demo 由两篇掘金文章整理 · 单文件、零依赖、直接双击打开</span>
+      <span>
+        <a href="https://juejin.cn/post/7431800714631528486" target="_blank" rel="noopener">原文一</a> ·
+        <a href="https://juejin.cn/post/7561355691681267753" target="_blank" rel="noopener">原文二</a>
+      </span>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= utils ================= */
+  var $  = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var fmt = function(n, d){ var v = Number(n.toFixed(d == null ? 4 : d)); return String(v); };
+  var clamp = function(v, a, b){ return Math.min(Math.max(v, a), b); };
+
+  function copyText(text, btn){
+    var done = function(){
+      if (!btn) return;
+      var old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function(){ btn.textContent = old; }, 1400);
+    };
+    if (navigator.clipboard && window.isSecureContext !== false) {
+      navigator.clipboard.writeText(text).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      ta.remove();
+    }
+  }
+
+  /* ================= tabs ================= */
+  $$('.tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      $$('.tab').forEach(function(b){ b.classList.toggle('on', b === btn); });
+      $$('.pane').forEach(function(p){ p.classList.toggle('on', p.id === btn.dataset.tab); });
+      if (btn.dataset.tab === 'pane-live') requestAnimationFrame(fitAll);
+    });
+  });
+
+  /* ================= header stats + rulers ================= */
+  function updateStats(){
+    var w = document.documentElement.clientWidth;
+    var rem10 = w / 10;
+    $('#stat-w').textContent = window.innerWidth + 'px';
+    $('#stat-rem').textContent = getComputedStyle(document.documentElement).fontSize;
+    $('#stat-dpr').textContent = (window.devicePixelRatio || 1).toFixed(2);
+    $('#stat-rem10').textContent = fmt(rem10, 1) + 'px';
+
+    var bar = $('#rulerBar');
+    if (bar) {
+      bar.style.width = Math.min(rem10, 1200) + 'px';
+      $('#rulerNum').textContent = fmt(rem10, 1) + 'px';
+      $('#rulerVal').textContent = fmt(rem10, 1) + 'px';
+    }
+    var bar2 = $('#rulerBar2');
+    if (bar2) { bar2.style.width = '16px'; }
+  }
+
+  /* ================= 02 converter ================= */
+  var S = { design: 750, px: 100, mode: 'auto', manual: 75, exBorder: true, exFont: true, mediaQuery: false, unitPrecision: 4, minPixelValue: 1 };
+
+  function rootValue(){
+    if (S.mode === 'auto') return S.design / 10;
+    if (S.mode === 'fixed16') return 16;
+    return S.manual > 0 ? S.manual : S.design / 10;
+  }
+  function propList(){
+    var l = ["*"];
+    if (S.exBorder) l.push("!border*");
+    if (S.exFont) l.push("!font-size*");
+    return l;
+  }
+  function isExcludedProp(prop, list){
+    for (var i = 0; i < list.length; i++){
+      var p = list[i];
+      if (p.charAt(0) !== '!') continue;
+      var pat = p.slice(1).replace(/\*/g, '');
+      if (!pat) return true;
+      if (prop.indexOf(pat) === 0) return true;
+    }
+    return false;
+  }
+
+  function renderCalc(){
+    var rv = rootValue();
+    var px = Number(S.px) || 0;
+    var rem = px / rv;
+
+    $('#c-from').textContent = fmt(px, 2) + 'px';
+    $('#c-to').textContent = fmt(rem, S.unitPrecision);
+    $('#c-rv-label').textContent = 'rootValue = ' + fmt(rv, 4);
+
+    var sw = document.documentElement.clientWidth;
+    var fs = sw / 10;                        // flexible 假设
+    var real = rem * fs;
+    $('#c-sw').textContent = sw + 'px';
+    $('#c-rempx').textContent = fmt(fs, 1) + 'px';
+    $('#c-real').textContent = fmt(real, 1) + 'px';
+    $('#c-scaletip').textContent = '（= 设计稿 × ' + fmt(sw / S.design, 3) + '）';
+
+    // 对照表
+    var list = [1, 2, 4, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 64, 100, 200, 375, 750];
+    var rows = [];
+    for (var i = 0; i < list.length; i++){
+      var n = list[i];
+      var r = n / rv;
+      rows.push('<tr><td>' + n + 'px</td><td class="good">' + fmt(r, S.unitPrecision) + 'rem</td><td class="dim">' + fmt(r * fs, 1) + 'px</td></tr>');
+    }
+    $('#c-tbody').innerHTML = rows.join('');
+
+    // 校验
+    var expected = S.design / 10;
+    var box = $('#c-warn');
+    if (Math.abs(rv - expected) > 0.001) {
+      var k = rv / expected;
+      box.innerHTML =
+        '<div class="note bad"><span class="ic">✗</span><span>与运行时基准不匹配：设计稿 ' + S.design +
+        ' 要求 rootValue = <b>' + fmt(expected, 4) + '</b>，当前是 <b>' + fmt(rv, 4) + '</b>。' +
+        '若运行期仍用「屏宽 ÷ 10」，全站尺寸会偏 <b>' + fmt(k, 2) + ' 倍</b>（' + (k > 1 ? '偏大' : '偏小') + '）。' +
+        '<br>修正：rootValue 设为 ' + fmt(expected, 4) + '，或让运行时按 rootValue 反推 font-size。</span></div>';
+    } else {
+      box.innerHTML =
+        '<div class="note good"><span class="ic">✓</span><span>rootValue = 设计稿 ÷ 10 = <b>' + fmt(expected, 4) +
+        '</b>，与 amfe-flexible 的「屏宽 ÷ 10」完全对齐，满宽时 1:1 还原设计稿。</span></div>';
+    }
+
+    renderCss();
+  }
+
+  /* ---- 简化版 CSS 编译器：逐行处理声明 ---- */
+  function trimZeros(n, p){
+    var v = Number(n.toFixed(p));
+    return String(v);
+  }
+
+  function convertCss(src, opt){
+    var lines = src.split('\n');
+    var out = [];
+    var selector = '';
+    var mediaDepth = 0;
+
+    for (var i = 0; i < lines.length; i++){
+      var line = lines[i];
+      var t = line.trim();
+
+      if (!t) { out.push(line); continue; }
+
+      // 媒体查询块
+      if (mediaDepth > 0){
+        mediaDepth += (t.split('{').length - 1) - (t.split('}').length - 1);
+        if (mediaDepth <= 0) mediaDepth = 0;
+        out.push(line);
+        continue;
+      }
+      if (/^@media/.test(t)){
+        if (!opt.mediaQuery){ mediaDepth = 1; out.push(line); continue; }
+        out.push(line); continue;
+      }
+
+      if (t.charAt(t.length - 1) === '{'){
+        selector = t.slice(0, -1).trim();
+        out.push(line);
+        continue;
+      }
+      if (t === '}'){ selector = ''; out.push(line); continue; }
+
+      var hasSemi = /;\s*$/.test(line);
+      var body = hasSemi ? line.replace(/;\s*$/, '') : line;
+      var m = body.match(/^(\s*)([-\w]+)\s*:\s*(.+)$/);
+      if (!m) { out.push(line); continue; }
+
+      var indent = m[1], prop = m[2], val = m[3];
+
+      if (isExcludedProp(prop, opt.propList)) { out.push(line); continue; }
+
+      var changed = false;
+      var newVal = val.replace(/(-?\d*\.?\d+)px\b/g, function(all, numStr){
+        var n = parseFloat(numStr);
+        if (!isFinite(n)) return all;
+        if (Math.abs(n) < opt.minPixelValue) return all;
+        changed = true;
+        return trimZeros(n / opt.rootValue, opt.unitPrecision) + 'rem';
+      });
+
+      out.push(changed ? (indent + prop + ': ' + newVal + (hasSemi ? ';' : '')) : line);
+    }
+    return out.join('\n');
+  }
+
+  function renderCss(){
+    var src = $('#css-in').value;
+    var res = convertCss(src, {
+      rootValue: rootValue(),
+      propList: propList(),
+      unitPrecision: S.unitPrecision,
+      minPixelValue: S.minPixelValue,
+      mediaQuery: S.mediaQuery
+    });
+    $('#css-out').textContent = res;
+  }
+
+  /* ---- bind 02 ---- */
+  $('#c-design').addEventListener('change', function(e){ S.design = Number(e.target.value); renderCalc(); });
+  $('#c-px').addEventListener('input', function(e){ S.px = e.target.value; renderCalc(); });
+  $('#c-mode').addEventListener('change', function(e){
+    S.mode = e.target.value;
+    $('#c-manual-wrap').style.display = S.mode === 'manual' ? 'block' : 'none';
+    renderCalc();
+  });
+  $('#c-manual').addEventListener('input', function(e){ S.manual = Number(e.target.value) || 0; renderCalc(); });
+
+  function bindToggle(id, key){
+    $(id).addEventListener('click', function(e){
+      S[key] = !S[key];
+      e.currentTarget.classList.toggle('pri', S[key]);
+      renderCalc();
+    });
+  }
+  bindToggle('#ex-border', 'exBorder');
+  bindToggle('#ex-font', 'exFont');
+  bindToggle('#ex-media', 'mediaQuery');
+
+  $('#css-in').addEventListener('input', renderCss);
+  $('#copy-css').addEventListener('click', function(){ copyText($('#css-out').textContent, this); });
+
+  /* ================= 03 config generator ================= */
+  function buildConfig(){
+    var fw = $('#cfg-fw').value;
+    var dw = Number($('#cfg-dw').value);
+    var lib = $('#cfg-lib').value;
+    var exB = $('#cfg-exb').checked;
+    var exF = $('#cfg-exf').checked;
+    var minpv = $('#cfg-minpv').checked;
+    var rv = dw / 10;
+
+    var pl = ["'*'"];
+    if (exB) pl.push("'!border*'");
+    if (exF) pl.push("'!font-size*'");
+    var propList = '[' + pl.join(', ') + ']';
+
+    var lines = [];
+
+    if (fw === 'next'){
+      lines.push('// postcss.config.js（根目录）');
+      lines.push('module.exports = {');
+      lines.push('  plugins: {');
+      lines.push("    'postcss-pxtorem': {");
+      if (lib === 'vant'){
+        lines.push('      rootValue ({ file }) {');
+        lines.push("        return file.indexOf('vant') !== -1 ? 37.5 : " + rv + ';');
+        lines.push('      },');
+      } else {
+        lines.push('      rootValue: ' + rv + ',');
+      }
+      lines.push('      propList: ' + propList + ',');
+      lines.push('      unitPrecision: 5,');
+      lines.push('      minPixelValue: ' + (minpv ? 1 : 0) + ',');
+      lines.push('      mediaQuery: false,');
+      if (lib === 'element') lines.push('      exclude: /node_modules[\\/](?!element-plus)/,');
+      if (lib === 'antd')    lines.push('      exclude: /node_modules[\\/](?!antd)/,');
+      lines.push('    },');
+      lines.push('  },');
+      lines.push('};');
+      $('#cfg-file-name').textContent = 'postcss.config.js';
+    } else {
+      var isVue = fw === 'vite-vue';
+      lines.push("import { defineConfig } from 'vite'");
+      if (isVue) lines.push("import vue from '@vitejs/plugin-vue'");
+      lines.push("import postCssPxToRem from 'postcss-pxtorem'");
+      lines.push('');
+      lines.push('export default defineConfig({');
+      lines.push('  plugins: [' + (isVue ? 'vue()' : '') + '],');
+      lines.push('  css: {');
+      lines.push('    postcss: {');
+      lines.push('      plugins: [');
+      lines.push('        postCssPxToRem({');
+      if (lib === 'vant'){
+        lines.push('          // vant 设计稿 375 → 37.5；项目设计稿 ' + dw + ' → ' + rv);
+        lines.push('          rootValue ({ file }) {');
+        lines.push("            return file.indexOf('vant') !== -1 ? 37.5 : " + rv + ';');
+        lines.push('          },');
+      } else {
+        lines.push('          // = 设计稿宽 ' + dw + ' ÷ 10');
+        lines.push('          rootValue: ' + rv + ',');
+      }
+      lines.push('          propList: ' + propList + ',');
+      lines.push('          unitPrecision: 5,');
+      lines.push('          minPixelValue: ' + (minpv ? 1 : 0) + ',');
+      lines.push('          mediaQuery: false,');
+      if (lib === 'element') lines.push('          exclude: /node_modules[\\/](?!element-plus)/,');
+      if (lib === 'antd')    lines.push('          exclude: /node_modules[\\/](?!antd)/,');
+      lines.push('        }),');
+      lines.push('      ],');
+      lines.push('    },');
+      lines.push('  },');
+      lines.push('});');
+      $('#cfg-file-name').textContent = 'vite.config.' + (isVue ? 'ts' : 'js');
+    }
+
+    $('#cfg-out').textContent = lines.join('\n');
+
+    // 运行时片段
+    var mobile = dw <= 750;
+    var rt = [];
+    if (mobile){
+      rt.push('// main.ts / main.js —— 第一行即可');
+      rt.push("import 'amfe-flexible'");
+      rt.push('');
+      rt.push('// 它等价于在 resize 时执行：');
+      rt.push('// document.documentElement.style.fontSize');
+      rt.push('//   = document.documentElement.clientWidth / 10 + "px"');
+      rt.push('// 所以 rootValue 必须取设计稿 ÷ 10 = ' + rv);
+    } else {
+      rt.push('// utils/rem.js —— PC 大屏必须加钳制');
+      rt.push('const DESIGN_W = ' + dw);
+      rt.push('const BASE = DESIGN_W / 10;   // 满宽时的根字号 = ' + rv);
+      rt.push('');
+      rt.push('function setRem() {');
+      rt.push('  const w = document.documentElement.clientWidth;');
+      rt.push('  const scale = Math.min(Math.max(w / DESIGN_W, 0.667), 1.5);');
+      rt.push('  document.documentElement.style.fontSize = BASE * scale + "px";');
+      rt.push('}');
+      rt.push('');
+      rt.push('setRem();');
+      rt.push("window.addEventListener('resize', setRem);");
+      rt.push('// 注意：钳制区间要和设计/验收的屏宽范围一致');
+    }
+    $('#cfg-rt').textContent = rt.join('\n');
+
+    // 校验
+    var ok = true;
+    var msg = '<div class="note good"><span class="ic">✓</span><span>rootValue = <b>' + rv +
+      '</b> = 设计稿 ' + dw + ' ÷ 10，与运行时「屏宽 ÷ 10」一致。';
+    if (lib === 'vant') msg += ' vant 部分按文件切到 37.5，避免 375 稿被放大两倍。';
+    msg += '</span></div>';
+    if (!ok) msg = '';
+    $('#cfg-check').innerHTML = msg;
+  }
+
+  ['#cfg-fw', '#cfg-dw', '#cfg-lib', '#cfg-exb', '#cfg-exf', '#cfg-minpv'].forEach(function(sel){
+    $(sel).addEventListener('change', buildConfig);
+  });
+  $('#copy-cfg').addEventListener('click', function(){ copyText($('#cfg-out').textContent, this); });
+  $('#copy-rt').addEventListener('click', function(){ copyText($('#cfg-rt').textContent, this); });
+
+  /* ================= 04 live frames ================= */
+  function mockMobile(U){
+    function statCard(t, v, c){
+      return '<div style="background:#fff;border-radius:' + U(12) + ';padding:' + U(12) + ';box-shadow:0 ' + U(2) + ' ' + U(8) + ' rgba(17,24,39,.05)">'
+        + '<div style="font-size:' + U(11) + ';color:#8a94a6;line-height:1.4">' + t + '</div>'
+        + '<div style="font-size:' + U(17) + ';font-weight:700;color:' + c + ';margin-top:' + U(4) + ';line-height:1.3">' + v + '</div>'
+        + '</div>';
+    }
+    function listRow(t){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:' + U(11) + ' 0;border-bottom:' + U(1) + ' solid #eef2f7;font-size:' + U(12) + ';color:#475569">'
+        + '<span>' + t + '</span><span style="color:#b6c2d2">›</span></div>';
+    }
+    return ''
+      + '<div style="padding:0 ' + U(16) + ' ' + U(34) + '">'
+      +   '<div style="display:flex;justify-content:space-between;align-items:center;padding:' + U(13) + ' 0 ' + U(10) + '">'
+      +     '<div style="font-size:' + U(17) + ';font-weight:800;color:#111827;letter-spacing:' + U(0.3) + '">适配演示</div>'
+      +     '<div style="font-size:' + U(11) + ';color:#8a94a6;border:' + U(1) + ' solid #e3e8ef;border-radius:' + U(10) + ';padding:' + U(3) + ' ' + U(8) + '">H5</div>'
+      +   '</div>'
+      +   '<div data-probe style="background:linear-gradient(135deg,#5aa9ff,#37e0a0);border-radius:' + U(16) + ';padding:' + U(16) + ';color:#fff">'
+      +     '<div style="font-size:' + U(19) + ';font-weight:800;line-height:1.3">postcss-pxtorem</div>'
+      +     '<div style="font-size:' + U(12) + ';opacity:.94;margin-top:' + U(6) + '">设计稿 375px · rootValue 37.5</div>'
+      +     '<div style="margin-top:' + U(12) + ';height:' + U(6) + ';border-radius:' + U(3) + ';background:rgba(255,255,255,.35)">'
+      +       '<div style="width:62%;height:100%;border-radius:' + U(3) + ';background:#fff"></div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:' + U(10) + ';margin-top:' + U(13) + '">'
+      +     statCard('1rem 实际值', '屏宽÷10', '#5aa9ff')
+      +     statCard('设计稿宽', '375px', '#37e0a0')
+      +     statCard('换算比例', '÷37.5', '#ffb547')
+      +     statCard('行内 px', '不转换', '#94a3b8')
+      +   '</div>'
+      +   '<div style="margin-top:' + U(13) + ';background:#fff;border-radius:' + U(12) + ';padding:0 ' + U(13) + '">'
+      +     listRow('字体大小')
+      +     listRow('内边距')
+      +     listRow('描边粗细')
+      +   '</div>'
+      +   '<div style="margin-top:' + U(16) + ';height:' + U(44) + ';border-radius:' + U(22) + ';background:#111827;color:#fff;display:flex;align-items:center;justify-content:center;font-size:' + U(14) + ';font-weight:600">立即体验</div>'
+      + '</div>';
+  }
+
+  function runtimeScript(useRem){
+    if (!useRem){
+      return 'function report(){'
+        + 'var fs=getComputedStyle(document.documentElement).fontSize;'
+        + 'var p=document.querySelector("[data-probe]");'
+        + 'var w=p?p.getBoundingClientRect().width:0;'
+        + 'document.getElementById("dbg").textContent="根字号 "+fs+"（从未设置）· 卡片实测 "+w.toFixed(1)+"px · 屏宽 "+document.documentElement.clientWidth+"px · 尺寸不随屏宽变化";'
+        + '}'
+        + 'window.addEventListener("resize",report);'
+        + 'report();';
+    }
+    return 'var BASE=37.5;'
+      + 'function setRem(){'
+      + 'var w=document.documentElement.clientWidth;'
+      + 'var fs=w/10;'
+      + 'document.documentElement.style.fontSize=fs+"px";'
+      + 'report(fs);'
+      + '}'
+      + 'function report(fs){'
+      + 'fs=fs||parseFloat(getComputedStyle(document.documentElement).fontSize);'
+      + 'var p=document.querySelector("[data-probe]");'
+      + 'var w=p?p.getBoundingClientRect().width:0;'
+      + 'document.getElementById("dbg").textContent="根字号 "+fs.toFixed(2)+"px（=屏宽÷10）· 卡片实测 "+w.toFixed(1)+"px · 屏宽 "+document.documentElement.clientWidth+"px";'
+      + '}'
+      + 'setRem();'
+      + 'window.addEventListener("resize",setRem);';
+  }
+
+  function buildDoc(useRem){
+    var DW = 375;
+    var U = function(n){
+      if (!useRem) return n + 'px';
+      var v = n * 10 / DW;
+      return (Math.round(v * 1e6) / 1e6) + 'rem';
+    };
+    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<style>'
+      + '*{box-sizing:border-box}html,body{margin:0;padding:0}'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;'
+      + 'background:#f5f7fa;color:#111827;-webkit-font-smoothing:antialiased;overflow-x:hidden}'
+      + '.dbg{position:fixed;left:0;right:0;bottom:0;background:rgba(8,11,16,.9);color:#8ff0c9;'
+      + 'font:10.5px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:5px 8px;text-align:center;letter-spacing:.1px;z-index:9}'
+      + '</style></head><body>'
+      + mockMobile(U)
+      + '<div class="dbg" id="dbg">—</div>'
+      + '<scr' + 'ipt>' + runtimeScript(useRem) + '<\/scr' + 'ipt>'
+      + '</body></html>';
+  }
+
+  var devW = 375;
+  var SIMH = 600;
+
+  function renderFrames(){
+    var f1 = $('#frame-adapt'), f2 = $('#frame-plain');
+    if (!f1 || !f2) return;
+    f1.srcdoc = buildDoc(true);
+    f2.srcdoc = buildDoc(false);
+    [f1, f2].forEach(function(f){
+      f.style.width = devW + 'px';
+      f.style.height = SIMH + 'px';
+    });
+    $$('#devices button').forEach(function(b){
+      b.classList.toggle('on', Number(b.dataset.w) === devW);
+    });
+    requestAnimationFrame(fitAll);
+  }
+
+  function fitAll(){
+    $$('.frame-wrap').forEach(function(wrap){
+      var f = wrap.querySelector('iframe');
+      if (!f) return;
+      var cw = wrap.clientWidth;
+      if (!cw) return;
+      var sw = parseInt(f.style.width, 10) || devW;
+      var sh = parseInt(f.style.height, 10) || SIMH;
+      var k = Math.min(1, cw / sw);
+      f.style.transform = 'scale(' + k + ')';
+      wrap.style.height = (sh * k) + 'px';
+      var badge = wrap.parentNode.querySelector('[data-zoom]');
+      if (badge) badge.textContent = Math.round(k * 100) + '%';
+    });
+  }
+
+  $$('#devices button').forEach(function(b){
+    b.addEventListener('click', function(){
+      devW = Number(b.dataset.w);
+      renderFrames();
+    });
+  });
+
+  /* PC 数值推演表 */
+  function renderPcTable(){
+    var DW = 1920, BASE = 192, lo = 0.667, hi = 1.5;
+    var widths = [1280, 1440, 1920, 2560];
+    var rows = [];
+    for (var i = 0; i < widths.length; i++){
+      var w = widths[i];
+      var scale = clamp(w / DW, lo, hi);
+      var fs = BASE * scale;
+      var a = 200 * (10 / DW) * fs;             // 设计稿 200px 的实渲染
+      var b = 200 * (10 / DW) * 16;             // 若 rootValue:16 且根字号固定 16
+      rows.push('<tr>'
+        + '<td>' + w + 'px</td>'
+        + '<td class="dim">' + fmt(w / DW, 3) + '</td>'
+        + '<td>' + fmt(fs, 1) + 'px</td>'
+        + '<td class="good">' + fmt(a, 1) + 'px</td>'
+        + '<td class="bad">' + fmt(b, 2) + 'px</td>'
+        + '</tr>');
+    }
+    $('#pc-tbody').innerHTML = rows.join('');
+  }
+
+  /* ================= boot ================= */
+  var resizeTimer = null;
+  window.addEventListener('resize', function(){
+    updateStats();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function(){ fitAll(); renderCalc(); }, 120);
+  });
+
+  updateStats();
+  renderCalc();
+  buildConfig();
+  renderPcTable();
+  renderFrames();
+  setTimeout(fitAll, 60);
+})();
+</script>
+</body>
+</html>
